@@ -15,9 +15,9 @@ class Tube {
 
   /// Calculates sideways part of gravity force.
   /// Positive force means ball is pushed to the right.
-  void update(double timeStep) {
+  void update(Duration timeStep) {
     const gravity = 9.81;
-    final force = gravity * sin(orientationDegrees * pi / 180);
+    final force = gravity * sin(orientationDegrees * pi / 180) * ball.mass;
 
     ball.update(force, timeStep);
     if (ball.position < 0) {

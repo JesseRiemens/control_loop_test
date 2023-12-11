@@ -74,7 +74,7 @@ class MockBall extends _i1.Mock implements _i2.Ball {
   @override
   void update(
     double? force,
-    double? timeStep,
+    Duration? timeStep,
   ) =>
       super.noSuchMethod(
         Invocation.method(

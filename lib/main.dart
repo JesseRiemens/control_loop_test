@@ -1,3 +1,11 @@
+import 'dart:async';
+
+import 'package:control_loop_test/controller/pid_controller.dart';
+import 'package:control_loop_test/sim/ball.dart';
+import 'package:control_loop_test/sim/process_adaptor.dart';
+import 'package:control_loop_test/sim/tube.dart';
+import 'package:control_loop_test/sim/tube_simulation.dart';
+import 'package:control_loop_test/tube_widget.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -7,89 +15,217 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: 'Flutter Demo',
-        theme: ThemeData(
-          // This is the theme of your application.
-          //
-          // TRY THIS: Try running your application with "flutter run". You'll see
-          // the application has a purple toolbar. Then, without quitting the app,
-          // try changing the seedColor in the colorScheme below to Colors.green
-          // and then invoke "hot reload" (save your changes or press the "hot
-          // reload" button in a Flutter-supported IDE, or press "r" if you used
-          // the command line to start the app).
-          //
-          // Notice that the counter didn't reset back to zero; the application
-          // state is not lost during the reload. To reset the state, use hot
-          // restart instead.
-          //
-          // This works for code too, not just values: Most code changes can be
-          // tested with just a hot reload.
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-        ),
-        home: const MyHomePage(title: 'Flutter Demo Home Page'),
+  Widget build(BuildContext context) => const MaterialApp(
+        home: MyHomePage(),
       );
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({required this.title, super.key});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+  const MyHomePage({super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  _MyHomePageState() {
+    _simulation = TubeSimulation(
+      tube: Tube(
+        ball: Ball(
+          mass: 0.1,
+          position: 0,
+          velocity: 0,
+        ),
+        length: 10,
+        orientationDegrees: 0,
+      ),
+    );
+    _controller = PIDController(
+      kp: 0.1,
+      ki: 0.01,
+      kd: 0.01,
+    );
+  }
 
-  void _incrementCounter() {
+  @override
+  void initState() {
+    _onStartSimulation();
+    _onStartController();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _onStopSimulation();
+    _onStopController();
+    super.dispose();
+  }
+
+  late TubeSimulation _simulation;
+  late PIDController _controller;
+  Timer? _simTimer;
+  Timer? _controllerTimer;
+  bool _manual = false;
+
+  static const _simTimeStep = Duration(milliseconds: 10);
+  static const _controllerTimeStep = Duration(milliseconds: 100);
+
+  void _handleSimTimer(Timer timer) {
+    setState(() => _simulation.update(_simTimeStep));
+  }
+
+  void _handleControllerTimer(Timer timer) {
+    setState(
+      () => _controller.control(
+        TubeSimProcessAdaptor(_simulation),
+        _controllerTimeStep,
+      ),
+    );
+  }
+
+  void _handleRotateLeft() {
+    setState(() => _simulation.orientationDegrees -= 1);
+  }
+
+  void _handleRotateRight() {
+    setState(() => _simulation.orientationDegrees += 1);
+  }
+
+  void _onStartSimulation() {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _simTimer ??= Timer.periodic(
+        _simTimeStep,
+        _handleSimTimer,
+      );
+    });
+  }
+
+  void _onStopSimulation() {
+    setState(() {
+      _simTimer?.cancel();
+      _simTimer = null;
+    });
+  }
+
+  void _onStartController() {
+    setState(() {
+      _manual = false;
+      _controller.reset();
+      _controllerTimer ??= Timer.periodic(
+        _controllerTimeStep,
+        _handleControllerTimer,
+      );
+    });
+  }
+
+  void _onStopController() {
+    setState(() {
+      _manual = true;
+      _controllerTimer?.cancel();
+      _controllerTimer = null;
     });
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title: Text(widget.title),
-        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              const Text(
-                'You have pushed the button this many times:',
+              TubeDisplay(
+                tubeLength: 150,
+                tubeHeight: 15,
+                orientationDegrees: _simulation.orientationDegrees,
+                position: _simulation.position,
+                maxPosition: _simulation.length,
+                velocity: _simulation.velocity,
               ),
-              Text(
-                '$_counter',
-                style: Theme.of(context).textTheme.headlineMedium,
+              Text("Time: ${_simulation.time}"),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Kp: ${_controller.kp.toStringAsFixed(3)}'),
+                  Text('Ki: ${_controller.ki.toStringAsFixed(3)}'),
+                  Text('Kd: ${_controller.kd.toStringAsFixed(3)}'),
+                ],
+              ),
+              if (_manual)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: _handleRotateLeft,
+                      child: const Text('Rotate Left'),
+                    ),
+                    TextButton(
+                      onPressed: _handleRotateRight,
+                      child: const Text('Rotate Right'),
+                    ),
+                    TextButton(
+                      onPressed: _onStartSimulation,
+                      child: const Text('Start Simulation'),
+                    ),
+                    TextButton(
+                      onPressed: _onStopSimulation,
+                      child: const Text('Stop Simulation'),
+                    ),
+                    TextButton(
+                      onPressed: _onStartController,
+                      child: const Text('Start Controller'),
+                    ),
+                  ],
+                )
+              else
+                TextButton(
+                  onPressed: _onStopController,
+                  child: const Text('Stop Controller'),
+                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () => _controller.kp += 0.1,
+                    child: const Text('Increase Kp'),
+                  ),
+                  TextButton(
+                    onPressed: () => _controller.kp -= 0.1,
+                    child: const Text('Decrease Kp'),
+                  ),
+                  TextButton(
+                    onPressed: () => _controller.ki += 0.01,
+                    child: const Text('Increase Ki'),
+                  ),
+                  TextButton(
+                    onPressed: () => _controller.ki -= 0.01,
+                    child: const Text('Decrease Ki'),
+                  ),
+                  TextButton(
+                    onPressed: () => _controller.kd += 0.01,
+                    child: const Text('Increase Kd'),
+                  ),
+                  TextButton(
+                    onPressed: () => _controller.kd -= 0.01,
+                    child: const Text('Decrease Kd'),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextField(
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Setpoint',
+                      constraints: BoxConstraints(maxWidth: 100),
+                    ),
+                    onChanged: (value) =>
+                        _controller.setSetpoint(double.parse(value)),
+                  ),
+                ],
               ),
             ],
           ),
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _incrementCounter,
-          tooltip: 'Increment',
-          child: const Icon(Icons.add),
         ),
       );
 }

@@ -71,7 +71,7 @@ class MockTube extends _i1.Mock implements _i3.Tube {
       );
 
   @override
-  void update(double? timeStep) => super.noSuchMethod(
+  void update(Duration? timeStep) => super.noSuchMethod(
         Invocation.method(
           #update,
           [timeStep],
@@ -144,7 +144,7 @@ class MockBall extends _i1.Mock implements _i2.Ball {
   @override
   void update(
     double? force,
-    double? timeStep,
+    Duration? timeStep,
   ) =>
       super.noSuchMethod(
         Invocation.method(

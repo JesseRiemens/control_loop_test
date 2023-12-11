@@ -9,9 +9,9 @@ class Ball {
   double velocity;
   double mass;
 
-  void update(double force, double timeStep) {
-    velocity += force / mass * timeStep;
-    position += velocity * timeStep;
+  void update(double force, Duration timeStep) {
+    velocity += force / mass * timeStep.inMicroseconds / 1000000;
+    position += velocity * timeStep.inMicroseconds / 1000000;
   }
 
   void reset() {

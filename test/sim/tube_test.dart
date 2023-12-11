@@ -10,6 +10,7 @@ import 'tube_test.mocks.dart';
 
 @GenerateNiceMocks([MockSpec<Ball>()])
 void main() {
+  const timeStep = Duration(milliseconds: 100);
   group('Tube General calls', () {
     late Tube tube;
     late MockBall mockBall;
@@ -20,9 +21,9 @@ void main() {
     });
 
     test('should update ball', () {
-      tube.update(0.1);
+      tube.update(timeStep);
 
-      verify(mockBall.update(any, 0.1)).called(1);
+      verify(mockBall.update(any, timeStep)).called(1);
     });
 
     test('should reset ball', () {
@@ -47,6 +48,7 @@ void main() {
     setUp(() {
       mockBall = MockBall();
       tube = Tube(ball: mockBall, length: 10, orientationDegrees: 45);
+      when(mockBall.mass).thenReturn(1);
     });
 
     test(
@@ -55,9 +57,9 @@ void main() {
         'Then should update ball with force 0', () {
       tube
         ..orientationDegrees = 0
-        ..update(0.1);
+        ..update(timeStep);
 
-      verify(mockBall.update(0, 0.1)).called(1);
+      verify(mockBall.update(0, timeStep)).called(1);
     });
 
     test(
@@ -66,9 +68,9 @@ void main() {
         'Then should update ball with force gravity', () {
       tube
         ..orientationDegrees = 90
-        ..update(0.1);
+        ..update(timeStep);
 
-      verify(mockBall.update(9.81, 0.1)).called(1);
+      verify(mockBall.update(9.81, timeStep)).called(1);
     });
 
     test(
@@ -77,18 +79,18 @@ void main() {
         'Then should update ball with force gravity', () {
       tube
         ..orientationDegrees = -90
-        ..update(0.1);
+        ..update(timeStep);
 
-      verify(mockBall.update(-9.81, 0.1)).called(1);
+      verify(mockBall.update(-9.81, timeStep)).called(1);
     });
 
     test(
         'Given tube is 45 degrees '
         'When update is called '
         'Then should update ball with force gravity * sin(45)', () {
-      tube.update(0.1);
+      tube.update(timeStep);
 
-      verify(mockBall.update(9.81 * sin(45 * pi / 180), 0.1)).called(1);
+      verify(mockBall.update(9.81 * sin(45 * pi / 180), timeStep)).called(1);
     });
 
     test(
@@ -97,9 +99,9 @@ void main() {
         'Then should update ball with force gravity * sin(-45)', () {
       tube
         ..orientationDegrees = -45
-        ..update(0.1);
+        ..update(timeStep);
 
-      verify(mockBall.update(9.81 * sin(-45 * pi / 180), 0.1)).called(1);
+      verify(mockBall.update(9.81 * sin(-45 * pi / 180), timeStep)).called(1);
     });
 
     test(
@@ -108,9 +110,9 @@ void main() {
         'Then should update ball and then should reset to 0,0', () {
       tube
         ..orientationDegrees = -45
-        ..update(0.1);
+        ..update(timeStep);
 
-      verify(mockBall.update(9.81 * sin(-45 * pi / 180), 0.1)).called(1);
+      verify(mockBall.update(9.81 * sin(-45 * pi / 180), timeStep)).called(1);
 
       expect(tube.ball.position, 0);
       expect(tube.ball.velocity, 0);

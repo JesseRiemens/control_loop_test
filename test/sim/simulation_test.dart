@@ -1,6 +1,6 @@
 import 'package:control_loop_test/sim/ball.dart';
-import 'package:control_loop_test/sim/simulation.dart';
 import 'package:control_loop_test/sim/tube.dart';
+import 'package:control_loop_test/sim/tube_simulation.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
@@ -8,16 +8,14 @@ import 'package:test/test.dart';
 import 'simulation_test.mocks.dart';
 
 @GenerateNiceMocks([MockSpec<Tube>(), MockSpec<Ball>()])
+const timeStep = Duration(milliseconds: 100);
 void main() {
   test('Simulation should update tube', () {
     final mockTube = MockTube();
 
-    const timeStep = 0.1;
-
-    Simulation(
-      timeStep: timeStep,
+    TubeSimulation(
       tube: mockTube,
-    ).update();
+    ).update(timeStep);
 
     verify(mockTube.update(timeStep)).called(1);
   });
@@ -25,8 +23,7 @@ void main() {
   test('Simulation should reset tube', () {
     final mockTube = MockTube();
 
-    Simulation(
-      timeStep: 0.1,
+    TubeSimulation(
       tube: mockTube,
     ).reset();
 
@@ -36,12 +33,11 @@ void main() {
   test('Simulation should return time', () {
     final mockTube = MockTube();
 
-    final simulation = Simulation(
-      timeStep: 0.1,
+    final simulation = TubeSimulation(
       tube: mockTube,
     );
 
-    expect(simulation.time, 0);
+    expect(simulation.time, Duration.zero);
   });
 
   test('Simulation should return position', () {
@@ -50,8 +46,7 @@ void main() {
 
     when(mockTube.ball).thenReturn(mockBall);
 
-    final simulation = Simulation(
-      timeStep: 0.1,
+    final simulation = TubeSimulation(
       tube: mockTube,
     );
 
@@ -65,8 +60,7 @@ void main() {
     final mockTube = MockTube();
     final mockBall = MockBall();
 
-    final simulation = Simulation(
-      timeStep: 0.1,
+    final simulation = TubeSimulation(
       tube: mockTube,
     );
 
@@ -80,8 +74,7 @@ void main() {
     final mockTube = MockTube();
     final mockBall = MockBall();
 
-    final simulation = Simulation(
-      timeStep: 0.1,
+    final simulation = TubeSimulation(
       tube: mockTube,
     );
 
@@ -94,11 +87,10 @@ void main() {
   test('When tube is updated, time should increase', () {
     final mockTube = MockTube();
 
-    final simulation = Simulation(
-      timeStep: 0.1,
+    final simulation = TubeSimulation(
       tube: mockTube,
-    )..update();
+    )..update(timeStep);
 
-    expect(simulation.time, 0.1);
+    expect(simulation.time, timeStep);
   });
 }
